@@ -7,6 +7,10 @@
   | ViT-B/32 (Our) | CIFAR100 | 61.71 |
   | ViT-B/32 (Paper | CIFAR10 | 91.3 |
   | ViT-B/32 (Our) | CIFAR10 | 88.8 |
+  
+## Overview
+<img width="1333" alt="model" src="https://user-images.githubusercontent.com/22078438/104386323-45c66b00-5578-11eb-9261-0c2c067cabc4.png">
+
 
 ## Training
  - Work In Process
