@@ -41,13 +41,32 @@ class Model(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.img_fc = nn.Linear(self.img_backbone.inplanes, out_channels)
 
-        ntoken, ninp, nhead, nhid, nlayers, dropout = 49404, 768, 8, 2048, 12, 0.5
+        ntoken, ninp, nhead, nhid, nlayers, dropout = 49408, 768, 8, 2048, 12, 0.5
+        self.encoder = nn.Embedding(ntoken, ninp)
         self.pos_encoder = PositionalEncoding(ninp, dropout)
         encoder_layers = nn.TransformerEncoderLayer(ninp, nhead, nhid, dropout)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, nlayers)
-        self.encoder = nn.Embedding(ntoken, ninp)
         self.ninp = ninp
         self.text_fc = nn.Linear(ninp, out_channels)
+
+    def forward(self, img, text):
+        n_batch = img.size(0)
+
+        img_out = self.img_model(img)
+        img_out = self.avg_pool(img_out)
+        img_out = img_out.view(n_batch, -1)
+        img_out = self.img_fc(img_out)
+        img_out = F.normalize(img_out, p=2, dim=-1)
+
+        src = self.encoder(text) * math.sqrt(self.ninp)
+        src = self.pos_encoder(src)
+        text_out = self.transformer_encoder(src, None)
+
+        text_out = text_out[:, -1, :]
+        text_out = self.text_fc(text_out)
+        text_out = F.normalize(text_out, p=2, dim=-1)
+
+        return img_out, text_out
 
     def encode_image(self, image):
         n_batch = image.size(0)
@@ -68,3 +87,10 @@ class Model(nn.Module):
         out = self.text_fc(out)
 
         return out
+
+
+# x = torch.randn([2, 3, 32, 32])
+# t = torch.randint(10, size=[2, 16])
+#
+# m = Model(512)
+# print(m.encode_image(x).size(), m.encode_text(t).size())
