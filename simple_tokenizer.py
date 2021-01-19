@@ -5,6 +5,7 @@ from functools import lru_cache
 
 import ftfy
 import regex as re
+import urllib.request
 
 # reference
 # https://github.com/openai/CLIP/blob/main/simple_tokenizer.py

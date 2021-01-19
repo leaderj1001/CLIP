@@ -5,11 +5,12 @@ import torch.nn.functional as F
 
 import numpy as np
 import os
+import math
 
 from config import load_config
 from preprocess import load_data
 from model import Model
-import clip
+import urllib.request
 
 
 def save_checkpoint(model, optimizer, args, epoch):
@@ -29,35 +30,32 @@ def save_checkpoint(model, optimizer, args, epoch):
 def _train(epoch, model, train_loader, optimizer, criterion, args):
     model.train()
 
-    text_inputs = torch.cat([clip.tokenize(f"a photo of a {c}") for c in train_loader.dataset.classes])
-    if args.cuda:
-        text_inputs = text_inputs.cuda()
-
-    losses = 0.
-    for i, (data, target) in enumerate(train_loader):
+    losses, step = 0., 0.
+    for i, (img, text) in enumerate(train_loader):
         if args.cuda:
-            data, target = data.cuda(), target.cuda()
+            img, text = img.cuda(), text.cuda()
 
-        img_feats = model.encode_image(data)
-        select_text_inputs = text_inputs[target, :]
-        text_feats = model.encode_text(select_text_inputs)
+        img_feats, text_feats = model(img, text)
 
-        temperature_factor = torch.tensor(args.temperature_factor)
-        if args.cuda:
-            temperature_factor = temperature_factor.cuda()
-        logits = torch.matmul(img_feats, text_feats.T) * torch.exp(temperature_factor)
+        logits = torch.matmul(img_feats, text_feats.T) * math.exp(args.temperature_factor)
 
-        labels = torch.arange(target.size(0))
+        labels = torch.arange(text.size(0))
 
         optimizer.zero_grad()
         loss = criterion(logits, labels)
         loss.backward()
         losses += loss.item()
+        step += 1
         optimizer.step()
-        print('[Epoch: {}], losses: {}'.format(epoch, losses / len(train_loader.dataset)))
+        print('[Epoch: {}], losses: {}'.format(epoch, losses / step))
 
 
 def main(args):
+    if not os.path.isdir('data'):
+        os.mkdir('data')
+    urllib.request.urlretrieve('https://openaipublic.azureedge.net/clip/bpe_simple_vocab_16e6.txt.gz',
+                               filename='./data/bpe_simple_vocab_16e6.txt.gz')
+
     model = Model(args.out_channels)
 
     if args.cuda:
@@ -65,7 +63,7 @@ def main(args):
     args.input_resolution = 32
     train_data, train_loader, test_data, test_loader = load_data(args)
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss()
 
     if not os.path.isdir('checkpoints'):
