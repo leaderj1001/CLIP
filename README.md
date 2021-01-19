@@ -20,13 +20,20 @@
  ```
  python evaluation.py --dataset CIFAR100 --cuda True
  ```
-   - args
-     - dataset (str): CIFAR10, CIFAR100 (default: CIFAR100)
-     - num_workers (int): default: 0
-     - batch_size (int): default: 128
-     - cuda (bool): False
+  - args
+    - dataset (str): CIFAR10, CIFAR100 (default: CIFAR100)
+    - num_workers (int): default: 0
+    - batch_size (int): default: 128
+    - cuda (bool): False
   - Training
-    - Work In Process
+    - Prepare Data
+      - Visual Genome Dataset [link](http://visualgenome.org)
+      - Download (images, region descriptions)
+    - training
+    ```
+    python main.py --base_dir ./ --cuda True
+    ```
+     
 
 ## Reference
  - [paper link](https://cdn.openai.com/papers/Learning_Transferable_Visual_Models_From_Natural_Language_Supervision.pdf)
